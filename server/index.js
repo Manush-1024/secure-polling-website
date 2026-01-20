@@ -40,15 +40,22 @@ mongoose.connect(process.env.MONGO_URI)
  * 
  * @body {string} question - The poll question
  * @body {string[]} options - Array of option texts
+ * @body {number} [duration] - Duration in minutes (optional)
  * @returns {object} { id: pollId, message: success message }
  */
 app.post('/api/poll', async (req, res) => {
     try {
-        const { question, options } = req.body;
+        const { question, options, duration } = req.body;
 
         // Validate input
         if (!question || !options || options.length < 2) {
             return res.status(400).json({ error: 'Question and at least 2 options required' });
+        }
+
+        // Calculate expiration if duration is provided
+        let expiresAt = null;
+        if (duration && duration > 0) {
+            expiresAt = new Date(Date.now() + duration * 60 * 1000);
         }
 
         // Format options for the schema
@@ -56,7 +63,8 @@ app.post('/api/poll', async (req, res) => {
 
         const newPoll = new Poll({
             question,
-            options: formattedOptions
+            options: formattedOptions,
+            expiresAt
         });
 
         await newPoll.save();
@@ -79,7 +87,13 @@ app.get('/api/poll/:id', async (req, res) => {
         const poll = await Poll.findById(req.params.id);
         if (!poll) return res.status(404).json({ error: 'Poll not found' });
 
-        res.json(poll);
+        // Check if poll is expired
+        const isExpired = poll.expiresAt && new Date() > new Date(poll.expiresAt);
+
+        res.json({
+            ...poll.toObject(),
+            isExpired
+        });
     } catch (err) {
         console.error('Error fetching poll:', err);
         res.status(500).json({ error: 'Failed to fetch poll' });
@@ -104,6 +118,11 @@ app.post('/api/vote', async (req, res) => {
 
         const poll = await Poll.findById(pollId);
         if (!poll) return res.status(404).json({ error: 'Poll not found' });
+
+        // Check for expiration
+        if (poll.expiresAt && new Date() > new Date(poll.expiresAt)) {
+            return res.status(400).json({ error: 'This poll has expired and is no longer accepting votes.' });
+        }
 
         // Check if IP has already voted (duplicate prevention)
         if (poll.votedIPs.includes(userIP)) {
