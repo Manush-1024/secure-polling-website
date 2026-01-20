@@ -26,7 +26,10 @@ const elements = {
   totalVotesText: document.getElementById('total-votes-text'),
   backHomeBtn: document.getElementById('back-home-btn'),
   statusMsg: document.getElementById('status-message'),
-  logoLink: document.getElementById('logo-link')
+  logoLink: document.getElementById('logo-link'),
+  pollDuration: document.getElementById('poll-duration'),
+  sharePollBtn: document.getElementById('share-poll-btn'),
+  expiredBadge: document.getElementById('expired-badge')
 };
 
 // --- View Switching ---
@@ -87,6 +90,7 @@ elements.createPollBtn.addEventListener('click', async () => {
   const question = elements.questionInput.value.trim();
   const optionInputs = Array.from(document.querySelectorAll('.poll-option-input'));
   const options = optionInputs.map(input => input.value.trim()).filter(val => val !== '');
+  const duration = parseInt(elements.pollDuration.value);
 
   if (!question || options.length < 2) {
     showStatus('Please provide a question and at least 2 choices.', 'error');
@@ -97,7 +101,7 @@ elements.createPollBtn.addEventListener('click', async () => {
     const response = await fetch(`${API_URL}/poll`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ question, options })
+      body: JSON.stringify({ question, options, duration })
     });
 
     const data = await response.json();
@@ -130,17 +134,34 @@ async function loadPoll(id) {
     selectedOptionId = null;
     elements.submitVoteBtn.disabled = true;
 
+    // Handle Expiry
+    if (poll.isExpired) {
+      elements.expiredBadge.classList.remove('hidden');
+      elements.submitVoteBtn.textContent = "Voting Closed";
+      elements.submitVoteBtn.disabled = true;
+    } else {
+      elements.expiredBadge.classList.add('hidden');
+      elements.submitVoteBtn.textContent = "Cast Vote";
+      elements.submitVoteBtn.disabled = true;
+    }
+
     poll.options.forEach(option => {
       const div = document.createElement('div');
       div.className = 'poll-option';
       div.textContent = option.text;
 
-      div.addEventListener('click', () => {
-        document.querySelectorAll('.poll-option').forEach(el => el.classList.remove('selected'));
-        div.classList.add('selected');
-        selectedOptionId = option._id;
-        elements.submitVoteBtn.disabled = false;
-      });
+      // Only allow clicking if NOT expired
+      if (!poll.isExpired) {
+        div.addEventListener('click', () => {
+          document.querySelectorAll('.poll-option').forEach(el => el.classList.remove('selected'));
+          div.classList.add('selected');
+          selectedOptionId = option._id;
+          elements.submitVoteBtn.disabled = false;
+        });
+      } else {
+        div.style.opacity = '0.7';
+        div.style.cursor = 'not-allowed';
+      }
 
       elements.voteOptionsList.appendChild(div);
     });
@@ -184,6 +205,15 @@ elements.submitVoteBtn.addEventListener('click', async () => {
   } catch (err) {
     showStatus('Network error. Failed to submit vote.', 'error');
   }
+});
+
+elements.sharePollBtn.addEventListener('click', () => {
+  const url = window.location.href;
+  navigator.clipboard.writeText(url).then(() => {
+    showStatus('Poll link copied to clipboard! 🔗');
+  }).catch(() => {
+    showStatus('Failed to copy link', 'error');
+  });
 });
 
 // --- Results Section Logic ---
@@ -234,6 +264,10 @@ elements.backHomeBtn.addEventListener('click', () => {
             <input type="text" class="poll-option-input" placeholder="Option 2">
         </div>
     `;
+
+  // Reset Duration
+  elements.pollDuration.value = "0";
+
   // Reset URL
   window.history.pushState({}, '', window.location.origin + window.location.pathname);
   showView('home');
