@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:4000/api';
+const API_URL = 'https://swiftpoll-api.onrender.com';
 
 // --- State Management ---
 let currentPollId = null;
