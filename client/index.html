@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SwiftPoll | Instant Secure Polling</title>
+  <!-- Google Fonts for premium look -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/style.css">
+</head>
+
+<body>
+  <div class="container">
+    <header>
+      <a href="#" id="logo-link" class="logo"><span>S</span> SwiftPoll</a>
+    </header>
+
+    <main id="app">
+      <!-- 1. Landing Section (Home Page) -->
+      <section id="landing-section">
+        <div class="hero-badge">🔒 Secure & Anonymous</div>
+        <h1 class="hero-title">Create Instant Polls <br>in Seconds.</h1>
+        <p class="hero-subtitle">The simplest way to gather opinions from your friends or colleagues. No signups, no
+          tracking, just results.</p>
+        <div class="hero-btns">
+          <button id="get-started-btn" class="btn btn-primary">Create a Poll</button>
+        </div>
+      </section>
+
+      <!-- 2. Create Poll Section -->
+      <section id="home-section" class="card hidden">
+        <div style="margin-bottom: 2rem;">
+          <span
+            style="color: var(--primary); font-weight: 700; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.1em;">Step
+            01</span>
+          <h2>Create your Poll</h2>
+        </div>
+
+        <div class="form-group">
+          <label for="poll-question">Main Question</label>
+          <input type="text" id="poll-question" placeholder="e.g. What should we eat for dinner?">
+        </div>
+
+        <div class="form-group">
+          <label>Choices</label>
+          <div id="options-container">
+            <div class="option-input-wrapper">
+              <input type="text" class="poll-option-input" placeholder="Option 1">
+            </div>
+            <div class="option-input-wrapper">
+              <input type="text" class="poll-option-input" placeholder="Option 2">
+            </div>
+          </div>
+          <button id="add-option-btn" class="btn btn-secondary"
+            style="margin-top: 1rem; padding: 0.5rem 1rem; font-size: 0.9rem;">+ Add choice</button>
+        </div>
+
+        <button id="create-poll-btn" class="btn btn-primary btn-block" style="margin-top: 2rem;">Launch Poll</button>
+        <button class="btn btn-secondary btn-block back-to-home-btn" style="margin-top: 1rem; border: none;">Back to
+          Start</button>
+      </section>
+
+      <!-- 3. Poll Voting Section -->
+      <section id="vote-section" class="card hidden">
+        <span
+          style="color: var(--primary); font-weight: 700; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.1em;">Direct
+          Poll</span>
+        <h2 id="vote-question"></h2>
+        <p class="subtitle" style="margin-bottom: 2rem;">Pick your favorite option below:</p>
+
+        <div id="vote-options-list" style="margin-top: 1rem;">
+          <!-- Options injected here -->
+        </div>
+
+        <button id="submit-vote-btn" class="btn btn-primary btn-block" disabled style="margin-top: 2rem;">Cast
+          Vote</button>
+        <p style="text-align: center; margin-top: 1.5rem; font-size: 0.85rem; color: var(--text-muted);">
+          <img src="https://cdns.iconmonstr.com/wp-content/releases/preview/2012/12/iconmonstr-lock-1.png" width="12"
+            style="vertical-align: middle; opacity: 0.5;">
+          Anonymous vote secured by IP protection.
+        </p>
+      </section>
+
+      <!-- 4. Results Section -->
+      <section id="results-section" class="card hidden">
+        <span
+          style="color: var(--success); font-weight: 700; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.1em;">Results</span>
+        <h2 id="results-question"></h2>
+
+        <div id="results-container" style="margin-top: 2rem;">
+          <!-- Results injected here -->
+        </div>
+
+        <div style="background: #f1f5f9; padding: 1.5rem; border-radius: 1rem; margin-top: 2rem; text-align: center;">
+          <p id="total-votes-text" style="font-weight: 700; color: var(--text-main); font-size: 1.25rem;"></p>
+          <p style="color: var(--text-muted); font-size: 0.9rem;">Total participations so far</p>
+        </div>
+
+        <button id="back-home-btn" class="btn btn-primary btn-block" style="margin-top: 2.5rem;">Create My Own
+          Poll</button>
+      </section>
+
+      <div id="status-message" class="hidden"></div>
+    </main>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+
+</html>
