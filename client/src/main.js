@@ -1,4 +1,4 @@
-const API_URL = 'https://swiftpoll-cln8.onrender.com/api';
+const API_URL = 'https://swiftpoll-api.onrender.com/api';
 
 // --- State Management ---
 let currentPollId = null;
