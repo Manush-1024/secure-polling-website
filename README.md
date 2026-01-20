@@ -185,7 +185,7 @@ This project is licensed under the MIT License.
 ## 👨‍💻 Author
 
 **Your Name**
-- GitHub: [Manush](https://github.com/yourusername)
+- GitHub: [Manush](https://github.com/Manush-1024)
 - Email: kit28.24bam040@gmail.com
 
 ## 🙏 Acknowledgments
