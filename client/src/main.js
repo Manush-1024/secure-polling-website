@@ -141,9 +141,7 @@ document.querySelectorAll('.back-to-home-btn').forEach(btn => {
 elements.addOptionBtn.addEventListener('click', () => {
   const div = document.createElement('div');
   div.className = 'option-input-wrapper';
-  div.style.display = 'flex';
-  div.style.gap = '0.5rem';
-  div.style.marginBottom = '0.5rem';
+  // div.style.marginBottom = '0.5rem'; // Handled by CSS now
 
   div.innerHTML = `
       <input type="text" class="poll-option-input" placeholder="Another Choice">
