@@ -76,7 +76,19 @@
             <option value="60">1 Hour</option>
             <option value="1440">24 Hours</option>
             <option value="10080">7 Days</option>
+            <option value="custom">Custom</option>
           </select>
+
+          <!-- Custom Duration Inputs -->
+          <div id="custom-duration-wrapper" class="hidden" style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+            <input type="number" id="custom-duration-value" placeholder="Value" min="1" class="poll-option-input"
+              style="flex: 1;">
+            <select id="custom-duration-unit" class="poll-option-input" style="flex: 1;">
+              <option value="m">Minutes</option>
+              <option value="h">Hours</option>
+              <option value="d">Days</option>
+            </select>
+          </div>
         </div>
 
         <button id="create-poll-btn" class="btn btn-primary btn-block" style="margin-top: 2rem;">Launch Poll</button>
@@ -93,6 +105,13 @@
         <div id="expired-badge" class="hidden"
           style="background: #fee2e2; color: #ef4444; padding: 0.5rem 1rem; border-radius: 0.5rem; display: inline-block; font-weight: 700; margin-bottom: 1rem;">
           Poll Expired 🛑</div>
+
+        <!-- Timer -->
+        <div id="poll-timer-container" class="hidden"
+          style="margin-bottom: 1.5rem; font-weight: 600; color: var(--primary); background: rgba(79, 70, 229, 0.1); padding: 0.5rem 1rem; border-radius: 0.5rem; display: inline-block;">
+          Time Left: <span id="poll-timer">--:--</span>
+        </div>
+
         <p class="subtitle" style="margin-bottom: 2rem;">Pick your favorite option below:</p>
 
         <div id="vote-options-list" style="margin-top: 1rem;">
