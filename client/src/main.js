@@ -1,4 +1,14 @@
-const API_URL = 'https://swiftpoll-api.onrender.com/api';
+import { io } from "socket.io-client";
+
+const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+// Detect if running in a container/GitPod/Codespace if needed, but localhost is good for now.
+// Note: If accessing from another device on network, use local IP.
+
+const API_URL = isLocal ? 'http://localhost:4000/api' : 'https://swiftpoll-api.onrender.com/api';
+const SOCKET_URL = isLocal ? 'http://localhost:4000' : 'https://swiftpoll-api.onrender.com';
+
+const socket = io(SOCKET_URL);
+// const socket = io('http://localhost:5000'); // Toggle for local dev
 
 // --- State Management ---
 let currentPollId = null;
@@ -29,7 +39,9 @@ const elements = {
   logoLink: document.getElementById('logo-link'),
   pollDuration: document.getElementById('poll-duration'),
   sharePollBtn: document.getElementById('share-poll-btn'),
-  expiredBadge: document.getElementById('expired-badge')
+  expiredBadge: document.getElementById('expired-badge'),
+  recentPollsContainer: document.getElementById('recent-polls-container'),
+  recentPollsList: document.getElementById('recent-polls-list')
 };
 
 // --- View Switching ---
@@ -57,11 +69,69 @@ function showStatus(msg, type = 'success') {
 elements.logoLink.addEventListener('click', (e) => {
   e.preventDefault();
   showView('landing');
+  renderRecentPolls();
 });
 
 elements.getStartedBtn.addEventListener('click', () => {
+  window.history.pushState({ view: 'create' }, '', '?view=create');
   showView('home');
 });
+
+// --- Recent Polls Logic ---
+function getRecentPolls() {
+  return JSON.parse(localStorage.getItem('my_polls') || '[]');
+}
+
+function saveToRecent(id, question) {
+  let polls = getRecentPolls();
+  // Remove if exists to re-add at top
+  polls = polls.filter(p => p.id !== id);
+  polls.unshift({ id, question, timestamp: Date.now() });
+  // Keep max 10
+  if (polls.length > 10) polls.pop();
+  localStorage.setItem('my_polls', JSON.stringify(polls));
+}
+
+function renderRecentPolls() {
+  const polls = getRecentPolls();
+  if (polls.length === 0) {
+    elements.recentPollsContainer.classList.add('hidden');
+    return;
+  }
+
+  elements.recentPollsContainer.classList.remove('hidden');
+  elements.recentPollsList.innerHTML = '';
+
+  polls.forEach(poll => {
+    const div = document.createElement('div');
+    div.className = 'recent-poll-item';
+    div.style.padding = '0.75rem';
+    div.style.background = 'white';
+    div.style.borderRadius = '0.5rem';
+    div.style.cursor = 'pointer';
+    div.style.border = '1px solid var(--border)';
+    div.style.display = 'flex';
+    div.style.justifyContent = 'space-between';
+    div.style.alignItems = 'center';
+
+    const timeAgo = Math.round((Date.now() - poll.timestamp) / (1000 * 60)); // minutes
+    let timeStr = timeAgo < 60 ? `${timeAgo}m ago` : `${Math.floor(timeAgo / 60)}h ago`;
+    if (timeAgo > 1440) timeStr = `${Math.floor(timeAgo / 1440)}d ago`;
+
+    div.innerHTML = `
+            <span style="font-weight: 600; color: var(--text-main);">${poll.question}</span>
+            <span style="font-size: 0.8rem; color: var(--text-muted);">${timeStr}</span>
+        `;
+
+    div.addEventListener('click', () => {
+      const newUrl = window.location.origin + window.location.pathname + '?poll=' + poll.id;
+      window.history.pushState({ path: newUrl }, '', newUrl);
+      loadPoll(poll.id);
+    });
+
+    elements.recentPollsList.appendChild(div);
+  });
+}
 
 document.querySelectorAll('.back-to-home-btn').forEach(btn => {
   btn.addEventListener('click', () => showView('landing'));
@@ -112,6 +182,7 @@ elements.createPollBtn.addEventListener('click', async () => {
       window.history.pushState({ path: newUrl }, '', newUrl);
 
       showStatus('Poll created successfully! 🚀');
+      saveToRecent(currentPollId, question);
       loadPoll(currentPollId);
     } else {
       showStatus(data.error || 'Failed to create poll', 'error');
@@ -128,6 +199,12 @@ async function loadPoll(id) {
     const poll = await response.json();
 
     if (!response.ok) throw new Error(poll.error);
+
+    // Save to history automatically when visiting
+    saveToRecent(poll._id, poll.question);
+
+    // Join Real-time Room
+    socket.emit('join-poll', id);
 
     elements.voteQuestion.textContent = poll.question;
     elements.voteOptionsList.innerHTML = '';
@@ -273,6 +350,20 @@ elements.backHomeBtn.addEventListener('click', () => {
   showView('home');
 });
 
+// --- Real-time Updates ---
+socket.on('poll-updated', (data) => {
+  if (currentPollId === data.pollId) {
+    // If we represent the voting page, we might want to show live stats? 
+    // Usually voting pages don't show results to avoid bias, but we can verify it's working.
+    // The user asked for "Vote live update".
+
+    // If we are on the results page, update the chart
+    if (!elements.resultsContainer.closest('.hidden')) {
+      loadResults(data.pollId);
+    }
+  }
+});
+
 // Initial Load Handle (Deep Links)
 const init = () => {
   const urlParams = new URLSearchParams(window.location.search);
@@ -280,9 +371,17 @@ const init = () => {
   if (pollIdFromUrl) {
     currentPollId = pollIdFromUrl;
     loadPoll(currentPollId);
+  } else if (urlParams.get('view') === 'create') {
+    showView('home');
   } else {
     showView('landing');
+    renderRecentPolls();
   }
 };
 
 init();
+
+// Handle Back Button
+window.addEventListener('popstate', () => {
+  init();
+});
