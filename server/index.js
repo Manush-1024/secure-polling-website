@@ -12,10 +12,33 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const http = require('http');
+const { Server } = require('socket.io');
 const Poll = require('./models/Poll');
 
 const app = express();
+const server = http.createServer(app);
 const PORT = process.env.PORT || 5000;
+
+const io = new Server(server, {
+    cors: {
+        origin: "*", // Allow all origins (update for production if needed)
+        methods: ["GET", "POST"]
+    }
+});
+
+io.on('connection', (socket) => {
+    console.log('User connected:', socket.id);
+    
+    socket.on('join-poll', (pollId) => {
+        socket.join(pollId);
+        console.log(`Socket ${socket.id} joined poll ${pollId}`);
+    });
+
+    socket.on('disconnect', () => {
+        console.log('User disconnected:', socket.id);
+    });
+});
 
 // ============================================
 // MIDDLEWARE
@@ -114,7 +137,8 @@ app.post('/api/vote', async (req, res) => {
         const { pollId, optionId } = req.body;
 
         // Extract user IP (works with proxies like Render)
-        const userIP = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+        // Taking the first IP in the list is safer for x-forwarded-for
+        const userIP = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket.remoteAddress;
 
         const poll = await Poll.findById(pollId);
         if (!poll) return res.status(404).json({ error: 'Poll not found' });
@@ -137,6 +161,14 @@ app.post('/api/vote', async (req, res) => {
         poll.votedIPs.push(userIP);
 
         await poll.save();
+        
+        // Notify all clients in the poll room about the update
+        io.to(pollId).emit('poll-updated', {
+            pollId,
+            options: poll.options,
+            totalVotes: poll.votedIPs.length
+        });
+
         res.json({ message: 'Vote recorded!' });
     } catch (err) {
         console.error('Error recording vote:', err);
@@ -170,6 +202,6 @@ app.get('/api/results/:id', async (req, res) => {
 // ============================================
 // SERVER START
 // ============================================
-app.listen(PORT, () => {
+server.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
