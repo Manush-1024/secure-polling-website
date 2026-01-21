@@ -1,4 +1,5 @@
 import { io } from "socket.io-client";
+import confetti from 'canvas-confetti';
 
 const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 // Detect if running in a container/GitPod/Codespace if needed, but localhost is good for now.
@@ -215,6 +216,10 @@ elements.createPollBtn.addEventListener('click', async () => {
       window.history.pushState({ path: newUrl }, '', newUrl);
 
       showStatus('Poll created successfully! 🚀');
+
+      // Celebration
+      startConfetti();
+
       saveToRecent(currentPollId, question);
       loadPoll(currentPollId);
     } else {
@@ -320,6 +325,10 @@ elements.submitVoteBtn.addEventListener('click', async () => {
       localStorage.setItem('voted_polls', JSON.stringify(votedPolls));
 
       showStatus('Vote cast successfully! ✅');
+
+      // Celebration
+      startConfetti();
+
       loadResults(currentPollId);
     } else {
       showStatus(data.error || 'Failed to submit vote', 'error');
@@ -361,10 +370,26 @@ function startTimer(endTime) {
     timeString += `${minutes}m ${seconds}s`;
 
     elements.pollTimer.textContent = timeString;
+
+    // Heartbeat & Red Color if <= 15 seconds
+    const diffSeconds = diff / 1000;
+    if (diffSeconds <= 15) {
+      elements.pollTimer.parentElement.classList.add('timer-critical');
+    } else {
+      elements.pollTimer.parentElement.classList.remove('timer-critical');
+    }
   }
 
   update(); // Run immediately
   timerInterval = setInterval(update, 1000);
+}
+
+function startConfetti() {
+  confetti({
+    particleCount: 150,
+    spread: 70,
+    origin: { y: 0.6 }
+  });
 }
 
 elements.sharePollBtn.addEventListener('click', () => {
