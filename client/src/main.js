@@ -14,6 +14,8 @@ const socket = io(SOCKET_URL);
 let currentPollId = null;
 let selectedOptionId = null;
 
+let timerInterval = null;
+
 // --- DOM Elements ---
 const views = {
   landing: document.getElementById('landing-section'),
@@ -41,7 +43,12 @@ const elements = {
   sharePollBtn: document.getElementById('share-poll-btn'),
   expiredBadge: document.getElementById('expired-badge'),
   recentPollsContainer: document.getElementById('recent-polls-container'),
-  recentPollsList: document.getElementById('recent-polls-list')
+  recentPollsList: document.getElementById('recent-polls-list'),
+  customDurationWrapper: document.getElementById('custom-duration-wrapper'),
+  customDurationValue: document.getElementById('custom-duration-value'),
+  customDurationUnit: document.getElementById('custom-duration-unit'),
+  timerContainer: document.getElementById('poll-timer-container'),
+  pollTimer: document.getElementById('poll-timer')
 };
 
 // --- View Switching ---
@@ -141,6 +148,7 @@ document.querySelectorAll('.back-to-home-btn').forEach(btn => {
 elements.addOptionBtn.addEventListener('click', () => {
   const div = document.createElement('div');
   div.className = 'option-input-wrapper';
+  div.className = 'option-input-wrapper';
   // div.style.marginBottom = '0.5rem'; // Handled by CSS now
 
   div.innerHTML = `
@@ -154,11 +162,38 @@ elements.addOptionBtn.addEventListener('click', () => {
   });
 });
 
+// Toggle Custom Duration
+elements.pollDuration.addEventListener('change', (e) => {
+  if (e.target.value === 'custom') {
+    elements.customDurationWrapper.classList.remove('hidden');
+    elements.customDurationWrapper.style.display = 'flex'; // Force flex
+  } else {
+    elements.customDurationWrapper.classList.add('hidden');
+    elements.customDurationWrapper.style.display = 'none';
+  }
+});
+
 elements.createPollBtn.addEventListener('click', async () => {
   const question = elements.questionInput.value.trim();
-  const optionInputs = Array.from(document.querySelectorAll('.poll-option-input'));
+  const optionInputs = Array.from(document.querySelectorAll('.poll-option-input')).filter(el => el.type === 'text');
   const options = optionInputs.map(input => input.value.trim()).filter(val => val !== '');
-  const duration = parseInt(elements.pollDuration.value);
+
+  let duration = parseInt(elements.pollDuration.value);
+
+  // Handle Custom Duration
+  if (elements.pollDuration.value === 'custom') {
+    const val = parseInt(elements.customDurationValue.value);
+    const unit = elements.customDurationUnit.value;
+
+    if (!val || val <= 0) {
+      showStatus('Please enter a valid custom duration.', 'error');
+      return;
+    }
+
+    if (unit === 'm') duration = val;
+    if (unit === 'h') duration = val * 60;
+    if (unit === 'd') duration = val * 1440;
+  }
 
   if (!question || options.length < 2) {
     showStatus('Please provide a question and at least 2 choices.', 'error');
@@ -209,13 +244,25 @@ async function loadPoll(id) {
     selectedOptionId = null;
     elements.submitVoteBtn.disabled = true;
 
-    // Handle Expiry
+    // Handle Expiry & Timer
+    if (timerInterval) clearInterval(timerInterval);
+
     if (poll.isExpired) {
       elements.expiredBadge.classList.remove('hidden');
+      elements.timerContainer.classList.add('hidden');
       elements.submitVoteBtn.textContent = "Voting Closed";
       elements.submitVoteBtn.disabled = true;
     } else {
       elements.expiredBadge.classList.add('hidden');
+
+      // Start Timer if expiresAt exists
+      if (poll.expiresAt) {
+        elements.timerContainer.classList.remove('hidden');
+        startTimer(new Date(poll.expiresAt));
+      } else {
+        elements.timerContainer.classList.add('hidden');
+      }
+
       elements.submitVoteBtn.textContent = "Cast Vote";
       elements.submitVoteBtn.disabled = true;
     }
@@ -281,6 +328,44 @@ elements.submitVoteBtn.addEventListener('click', async () => {
     showStatus('Network error. Failed to submit vote.', 'error');
   }
 });
+
+function startTimer(endTime) {
+  function update() {
+    const now = new Date();
+    const diff = endTime - now;
+
+    if (diff <= 0) {
+      clearInterval(timerInterval);
+      elements.pollTimer.textContent = "Expired";
+      elements.timerContainer.classList.add('hidden');
+      elements.expiredBadge.classList.remove('hidden');
+      elements.submitVoteBtn.disabled = true;
+      elements.submitVoteBtn.textContent = "Voting Closed";
+
+      // Disable options
+      document.querySelectorAll('.poll-option').forEach(el => {
+        el.style.opacity = '0.7';
+        el.style.cursor = 'not-allowed';
+      });
+      return;
+    }
+
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+    let timeString = "";
+    if (days > 0) timeString += `${days}d `;
+    if (hours > 0 || days > 0) timeString += `${hours}h `;
+    timeString += `${minutes}m ${seconds}s`;
+
+    elements.pollTimer.textContent = timeString;
+  }
+
+  update(); // Run immediately
+  timerInterval = setInterval(update, 1000);
+}
 
 elements.sharePollBtn.addEventListener('click', () => {
   const url = window.location.href;
