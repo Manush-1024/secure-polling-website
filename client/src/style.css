@@ -310,3 +310,25 @@ input[type="text"]:focus {
     flex-direction: column;
   }
 }
+
+/* Animations */
+@keyframes heartbeat {
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.1);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+.timer-critical {
+  color: var(--error) !important;
+  animation: heartbeat 1s infinite;
+  background: rgba(239, 68, 68, 0.1) !important;
+  transition: all 0.5s ease;
+}
