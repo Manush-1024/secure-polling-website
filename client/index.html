@@ -27,12 +27,33 @@
           tracking, just results.</p>
         <div class="hero-btns">
           <button id="get-started-btn" class="btn btn-primary">Create a Poll</button>
+          <button id="view-active-btn" class="btn btn-secondary" style="border: 1px solid var(--border);">Live
+            Results</button>
+        </div>
+
+        <!-- Active Polls Section -->
+        <div id="active-polls-container" class="hidden"
+          style="margin-top: 3rem; text-align: left; background: rgba(255,255,255,0.8); padding: 1.5rem; border-radius: 1rem; backdrop-filter: blur(10px); border: 1px solid rgba(79, 70, 229, 0.1);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h3 style="font-size: 1.1rem; color: var(--primary); margin: 0;">Running Polls 🔥</h3>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+              <span
+                style="font-size: 0.8rem; color: var(--text-muted); background: #f1f5f9; padding: 0.25rem 0.5rem; border-radius: 0.5rem;">Updated
+                Live</span>
+              <button id="close-active-btn" class="btn btn-secondary"
+                style="padding: 0.25rem 0.5rem; font-size: 0.8rem; border: none; background: transparent;">✕
+                Return</button>
+            </div>
+          </div>
+          <div id="active-polls-list" style="display: flex; flex-direction: column; gap: 0.75rem;">
+            <!-- Active polls injected here -->
+          </div>
         </div>
 
         <!-- Recent Polls Section -->
         <div id="recent-polls-container" class="hidden"
-          style="margin-top: 3rem; text-align: left; background: rgba(255,255,255,0.5); padding: 1.5rem; border-radius: 1rem; backdrop-filter: blur(10px);">
-          <h3 style="font-size: 1.1rem; color: var(--primary); margin-bottom: 1rem;">Your Recent Polls</h3>
+          style="margin-top: 2rem; text-align: left; background: rgba(255,255,255,0.5); padding: 1.5rem; border-radius: 1rem; backdrop-filter: blur(10px);">
+          <h3 style="font-size: 1.1rem; color: var(--primary); margin-bottom: 1rem;">Your Vote History</h3>
           <div id="recent-polls-list" style="display: flex; flex-direction: column; gap: 0.75rem;">
             <!-- Recent polls injected here -->
           </div>
@@ -120,9 +141,14 @@
 
         <button id="submit-vote-btn" class="btn btn-primary btn-block" disabled style="margin-top: 2rem;">Cast
           Vote</button>
-        <button id="share-poll-btn" class="btn btn-secondary btn-block"
-          style="margin-top: 1rem; background-color: #f1f5f9; color: var(--text-color); border: 1px solid var(--border);">Copy
-          Poll Link 🔗</button>
+        <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+          <button id="share-poll-btn" class="btn btn-secondary"
+            style="flex: 1; background-color: #f1f5f9; color: var(--text-color); border: 1px solid var(--border);">Copy
+            Link 🔗</button>
+          <button id="view-results-direct-btn" class="btn btn-secondary"
+            style="flex: 1; background-color: #f1f5f9; color: var(--text-color); border: 1px solid var(--border);">Results
+            📊</button>
+        </div>
 
         <p style="text-align: center; margin-top: 1.5rem; font-size: 0.85rem; color: var(--text-muted);">
           Anonymous vote secured by IP protection.
@@ -145,8 +171,13 @@
           <p style="color: var(--text-muted); font-size: 0.9rem;">Total participations so far</p>
         </div>
 
-        <button id="back-home-btn" class="btn btn-primary btn-block" style="margin-top: 2.5rem;">Create My Own
+        <button id="terminate-poll-btn" class="btn btn-secondary btn-block hidden"
+          style="margin-top: 1rem; color: #ef4444; border-color: #fecaca;">Terminate Poll 🛑</button>
+
+        <button id="back-home-btn" class="btn btn-primary btn-block" style="margin-top: 1rem;">Create My Own
           Poll</button>
+        <button class="btn btn-secondary btn-block back-to-home-btn" style="margin-top: 0.5rem; border: none;">Back to
+          Home</button>
       </section>
 
       <div id="status-message" class="hidden"></div>
