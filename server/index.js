@@ -29,7 +29,7 @@ const io = new Server(server, {
 
 io.on('connection', (socket) => {
     console.log('User connected:', socket.id);
-    
+
     socket.on('join-poll', (pollId) => {
         socket.join(pollId);
         console.log(`Socket ${socket.id} joined poll ${pollId}`);
@@ -99,6 +99,29 @@ app.post('/api/poll', async (req, res) => {
 });
 
 /**
+ * GET /api/polls/active
+ * Retrieve all currently running (non-expired) polls
+ * 
+ * @returns {object[]} Array of active polls
+ */
+app.get('/api/polls/active', async (req, res) => {
+    try {
+        const now = new Date();
+        const activePolls = await Poll.find({
+            $or: [
+                { expiresAt: null },
+                { expiresAt: { $gt: now } }
+            ]
+        }).sort({ createdAt: -1 }).limit(10);
+
+        res.json(activePolls);
+    } catch (err) {
+        console.error('Error fetching active polls:', err);
+        res.status(500).json({ error: 'Failed to fetch active polls' });
+    }
+});
+
+/**
  * GET /api/poll/:id
  * Retrieve poll details for voting
  * 
@@ -110,12 +133,18 @@ app.get('/api/poll/:id', async (req, res) => {
         const poll = await Poll.findById(req.params.id);
         if (!poll) return res.status(404).json({ error: 'Poll not found' });
 
+        const userIP = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket.remoteAddress;
+
         // Check if poll is expired
         const isExpired = poll.expiresAt && new Date() > new Date(poll.expiresAt);
 
+        // Check if user has already voted
+        const hasVoted = poll.votedIPs.includes(userIP);
+
         res.json({
             ...poll.toObject(),
-            isExpired
+            isExpired,
+            hasVoted
         });
     } catch (err) {
         console.error('Error fetching poll:', err);
@@ -161,7 +190,7 @@ app.post('/api/vote', async (req, res) => {
         poll.votedIPs.push(userIP);
 
         await poll.save();
-        
+
         // Notify all clients in the poll room about the update
         io.to(pollId).emit('poll-updated', {
             pollId,
@@ -173,6 +202,36 @@ app.post('/api/vote', async (req, res) => {
     } catch (err) {
         console.error('Error recording vote:', err);
         res.status(500).json({ error: 'Failed to record vote' });
+    }
+});
+
+/**
+ * POST /api/poll/:id/terminate
+ * Immediately terminate a poll
+ * 
+ * @param {string} id - Poll ID
+ * @returns {object} { message: success message }
+ */
+app.post('/api/poll/:id/terminate', async (req, res) => {
+    try {
+        const poll = await Poll.findById(req.params.id);
+        if (!poll) return res.status(404).json({ error: 'Poll not found' });
+
+        poll.expiresAt = new Date();
+        await poll.save();
+
+        // Notify all clients in the poll room about the termination
+        io.to(req.params.id).emit('poll-updated', {
+            pollId: poll._id,
+            isExpired: true,
+            options: poll.options,
+            totalVotes: poll.votedIPs.length
+        });
+
+        res.json({ message: 'Poll terminated' });
+    } catch (err) {
+        console.error('Error terminating poll:', err);
+        res.status(500).json({ error: 'Failed to terminate poll' });
     }
 });
 
