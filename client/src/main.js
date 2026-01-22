@@ -1,15 +1,11 @@
 import { io } from "socket.io-client";
 import confetti from 'canvas-confetti';
+import { pollApi } from './shared/api/pollApi';
 
 const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-// Detect if running in a container/GitPod/Codespace if needed, but localhost is good for now.
-// Note: If accessing from another device on network, use local IP.
-
-const API_URL = isLocal ? 'http://localhost:4000/api' : 'https://swiftpoll-api.onrender.com/api';
 const SOCKET_URL = isLocal ? 'http://localhost:4000' : 'https://swiftpoll-api.onrender.com';
 
 const socket = io(SOCKET_URL);
-// const socket = io('http://localhost:5000'); // Toggle for local dev
 
 // --- State Management ---
 let currentPollId = null;
@@ -49,7 +45,13 @@ const elements = {
   customDurationValue: document.getElementById('custom-duration-value'),
   customDurationUnit: document.getElementById('custom-duration-unit'),
   timerContainer: document.getElementById('poll-timer-container'),
-  pollTimer: document.getElementById('poll-timer')
+  pollTimer: document.getElementById('poll-timer'),
+  activePollsContainer: document.getElementById('active-polls-container'),
+  activePollsList: document.getElementById('active-polls-list'),
+  viewActiveBtn: document.getElementById('view-active-btn'),
+  viewResultsDirectBtn: document.getElementById('view-results-direct-btn'),
+  closeActiveBtn: document.getElementById('close-active-btn'),
+  terminatePollBtn: document.getElementById('terminate-poll-btn')
 };
 
 // --- View Switching ---
@@ -83,6 +85,37 @@ elements.logoLink.addEventListener('click', (e) => {
 elements.getStartedBtn.addEventListener('click', () => {
   window.history.pushState({ view: 'create' }, '', '?view=create');
   showView('home');
+});
+
+elements.viewActiveBtn.addEventListener('click', () => {
+  renderActivePolls();
+  elements.activePollsContainer.scrollIntoView({ behavior: 'smooth' });
+});
+
+elements.viewResultsDirectBtn.addEventListener('click', () => {
+  if (currentPollId) loadResults(currentPollId);
+});
+
+elements.closeActiveBtn.addEventListener('click', () => {
+  elements.activePollsContainer.classList.add('hidden');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+elements.terminatePollBtn.addEventListener('click', async () => {
+  if (!currentPollId) return;
+  if (!confirm('Are you sure you want to terminate this poll? No more votes will be accepted.')) return;
+
+  try {
+    const data = await pollApi.terminatePoll(currentPollId);
+    if (data.message === 'Poll terminated') {
+      showStatus('Poll terminated successfully 🛑');
+      loadResults(currentPollId);
+    } else {
+      showStatus(data.error || 'Failed to terminate poll', 'error');
+    }
+  } catch (err) {
+    showStatus('Network error. Failed to terminate poll.', 'error');
+  }
 });
 
 // --- Recent Polls Logic ---
@@ -139,6 +172,51 @@ function renderRecentPolls() {
 
     elements.recentPollsList.appendChild(div);
   });
+}
+
+async function renderActivePolls() {
+  try {
+    const polls = await pollApi.getActivePolls();
+    if (polls.length === 0) {
+      elements.activePollsContainer.classList.add('hidden');
+      return;
+    }
+
+    elements.activePollsContainer.classList.remove('hidden');
+    elements.activePollsList.innerHTML = '';
+
+    polls.forEach(poll => {
+      const div = document.createElement('div');
+      div.className = 'recent-poll-item active-poll-item';
+      div.style.padding = '0.75rem';
+      div.style.background = 'white';
+      div.style.borderRadius = '0.5rem';
+      div.style.cursor = 'pointer';
+      div.style.border = '1px solid var(--border)';
+      div.style.display = 'flex';
+      div.style.justifyContent = 'space-between';
+      div.style.alignItems = 'center';
+      div.style.transition = 'all 0.2s ease';
+
+      div.innerHTML = `
+              <div style="display: flex; flex-direction: column;">
+                <span style="font-weight: 600; color: var(--text-main);">${poll.question}</span>
+                <span style="font-size: 0.75rem; color: var(--success); font-weight: 700;">● RUNNING</span>
+              </div>
+              <button class="btn btn-secondary" style="padding: 0.25rem 0.75rem; font-size: 0.8rem;">Vote</button>
+          `;
+
+      div.addEventListener('click', () => {
+        const newUrl = window.location.origin + window.location.pathname + '?poll=' + poll._id;
+        window.history.pushState({ path: newUrl }, '', newUrl);
+        loadPoll(poll._id);
+      });
+
+      elements.activePollsList.appendChild(div);
+    });
+  } catch (err) {
+    console.error('Failed to load active polls', err);
+  }
 }
 
 document.querySelectorAll('.back-to-home-btn').forEach(btn => {
@@ -202,20 +280,19 @@ elements.createPollBtn.addEventListener('click', async () => {
   }
 
   try {
-    const response = await fetch(`${API_URL}/poll`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ question, options, duration })
-    });
-
-    const data = await response.json();
-    if (response.ok) {
+    const data = await pollApi.createPoll(question, options, duration);
+    if (data.id) {
       currentPollId = data.id;
       // Update URL for easy sharing
       const newUrl = window.location.origin + window.location.pathname + '?poll=' + currentPollId;
       window.history.pushState({ path: newUrl }, '', newUrl);
 
       showStatus('Poll created successfully! 🚀');
+
+      // Track ownership
+      const myCreatedPolls = JSON.parse(localStorage.getItem('my_created_polls') || '[]');
+      myCreatedPolls.push(currentPollId);
+      localStorage.setItem('my_created_polls', JSON.stringify(myCreatedPolls));
 
       // Celebration
       startConfetti();
@@ -233,10 +310,16 @@ elements.createPollBtn.addEventListener('click', async () => {
 // --- Vote Section Logic ---
 async function loadPoll(id) {
   try {
-    const response = await fetch(`${API_URL}/poll/${id}`);
-    const poll = await response.json();
+    const poll = await pollApi.getPoll(id);
 
-    if (!response.ok) throw new Error(poll.error);
+    if (poll.error) throw new Error(poll.error);
+
+    // Auto-redirect if already voted
+    const votedPolls = JSON.parse(localStorage.getItem('voted_polls') || '[]');
+    if (poll.hasVoted || votedPolls.includes(id)) {
+      loadResults(id);
+      return;
+    }
 
     // Save to history automatically when visiting
     saveToRecent(poll._id, poll.question);
@@ -312,14 +395,8 @@ elements.submitVoteBtn.addEventListener('click', async () => {
   }
 
   try {
-    const response = await fetch(`${API_URL}/vote`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pollId: currentPollId, optionId: selectedOptionId })
-    });
-
-    const data = await response.json();
-    if (response.ok) {
+    const data = await pollApi.submitVote(currentPollId, selectedOptionId);
+    if (data.message === 'Vote recorded!') {
       // Mark as voted
       votedPolls.push(currentPollId);
       localStorage.setItem('voted_polls', JSON.stringify(votedPolls));
@@ -403,11 +480,25 @@ elements.sharePollBtn.addEventListener('click', () => {
 
 // --- Results Section Logic ---
 async function loadResults(id) {
+  currentPollId = id; // Ensure state is synced
   try {
-    const response = await fetch(`${API_URL}/results/${id}`);
-    const results = await response.json();
+    const results = await pollApi.getResults(id);
 
-    if (!response.ok) throw new Error(results.error);
+    if (results.error) throw new Error(results.error);
+
+    // Check if host
+    const myCreatedPolls = JSON.parse(localStorage.getItem('my_created_polls') || '[]');
+    const isHost = myCreatedPolls.includes(id);
+
+    // Is poll active? (Need to check results or fetch poll details)
+    const pollDetails = await pollApi.getPoll(id);
+    const isAlreadyExpired = pollDetails.isExpired;
+
+    if (isHost && !isAlreadyExpired) {
+      elements.terminatePollBtn.classList.remove('hidden');
+    } else {
+      elements.terminatePollBtn.classList.add('hidden');
+    }
 
     elements.resultsQuestion.textContent = results.question;
     elements.totalVotesText.textContent = results.totalVotes;
@@ -484,6 +575,7 @@ const init = () => {
   } else {
     showView('landing');
     renderRecentPolls();
+    renderActivePolls();
   }
 };
 
