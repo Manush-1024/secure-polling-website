@@ -82,7 +82,8 @@ polling-website/
    Edit `.env` and add your MongoDB Atlas connection string:
    ```env
    PORT=4000
-   MONGO_URI=mongodb+srv://username:password@cluster.xxxxx.mongodb.net/polling_db
+   MONGO_URI=your_mongodb_connection_string
+
    ```
 
 4. **Setup Frontend**
