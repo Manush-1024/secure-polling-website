@@ -230,6 +230,17 @@ input[type="text"]:focus {
   border-width: 2px;
 }
 
+.active-poll-item:hover {
+  border-color: var(--primary) !important;
+  background: #f1f5f9 !important;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+
+.active-poll-item {
+  transition: var(--transition);
+}
+
 /* Results */
 .result-item {
   margin-bottom: 1.75rem;
