@@ -111,8 +111,6 @@ polling-website/
 
 ## 🌐 Deployment
 
-See [render_guide.md](./render_guide.md) for detailed instructions on deploying to Render.
-
 ### Quick Deploy Steps:
 1. Push code to GitHub
 2. Deploy backend to Render (Web Service)
