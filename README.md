@@ -159,18 +159,6 @@ Submit a vote
 #### `GET /api/results/:id`
 Get poll results with vote counts
 
-## 🎓 Project Explanation (For Viva)
-
-### Architecture
-- **3-Tier Architecture**: Frontend (Vite) → Backend (Express) → Database (MongoDB)
-- **RESTful API**: Clean separation of concerns
-- **Stateless Design**: No server-side sessions
-
-### Why No Authentication?
-- **Privacy-focused**: Users can vote without creating accounts
-- **Simplicity**: Reduces friction, increases participation
-- **Security**: Duplicate prevention through IP + LocalStorage
-
 ### Limitations & Future Improvements
 - **Current**: IP-based prevention can be bypassed with VPN
 - **Future**: Add optional email verification, CAPTCHA, or OAuth
