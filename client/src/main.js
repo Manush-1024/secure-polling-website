@@ -501,28 +501,45 @@ elements.submitVoteBtn.addEventListener('click', async () => {
     return;
   }
 
+  let voteData = null;
+
   try {
-    const data = await pollApi.submitVote(currentPollId, selectedOptionId);
-    if (data.message === 'Vote recorded!') {
-      // Mark as voted
-      votedPolls.push(currentPollId);
-      localStorage.setItem('voted_polls', JSON.stringify(votedPolls));
-
-      showStatus('Vote cast successfully! ✅');
-
-      // Save to history after successful vote
-      const pollDetails = await pollApi.getPoll(currentPollId);
-      saveToRecent(currentPollId, pollDetails.question);
-
-      // Celebration
-      startConfetti();
-
-      loadResults(currentPollId);
-    } else {
-      showStatus(data.error || 'Failed to submit vote', 'error');
-    }
+    voteData = await pollApi.submitVote(currentPollId, selectedOptionId);
   } catch (err) {
     showStatus('Network error. Failed to submit vote.', 'error');
+    return;
+  }
+
+  if (voteData && voteData.message === 'Vote recorded!') {
+    // Mark as voted
+    votedPolls.push(currentPollId);
+    localStorage.setItem('voted_polls', JSON.stringify(votedPolls));
+
+    showStatus('Vote cast successfully! ✅');
+
+    // Celebration
+    startConfetti();
+
+    // Post-vote operations (Non-critical)
+    try {
+      // Save to history
+      // We don't strictly need to fetch the poll again if we can just save ID.
+      // But if we need the question text, we try to fetch it.
+      const pollDetails = await pollApi.getPoll(currentPollId);
+      saveToRecent(currentPollId, pollDetails.question);
+    } catch (e) {
+      console.warn('Failed to save to recent history', e);
+    }
+
+    // Always try to load results
+    try {
+      await loadResults(currentPollId);
+    } catch (e) {
+      console.error('Failed to load results after voting', e);
+    }
+
+  } else {
+    showStatus(voteData?.error || 'Failed to submit vote', 'error');
   }
 });
 
@@ -704,4 +721,13 @@ if (typeof lucide !== 'undefined') {
 // Handle Back Button
 window.addEventListener('popstate', () => {
   init();
+});
+
+// Explicitly clear form on full reload (fixes browser persistence issue)
+window.addEventListener('load', () => {
+  if (elements.questionInput) {
+    elements.questionInput.value = '';
+    elements.pollDuration.value = '60'; // Default to 1 Hour
+    resetCreateForm();
+  }
 });
