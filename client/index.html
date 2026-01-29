@@ -5,28 +5,37 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SwiftPoll</title>
-  <!-- Google Fonts for premium look -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Faster+One&family=Outfit:wght@400;600;700;900&family=Trade+Winds&display=swap"
+    rel="stylesheet">
+  <link rel="icon" type="image/png" href="/icons/logo.png">
   <link rel="stylesheet" href="/src/style.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 
 <body>
   <div class="container">
     <header>
-      <a href="#" id="logo-link" class="logo"><span>S</span> SwiftPoll</a>
+      <a href="#" id="logo-link" class="logo">
+        <img src="/icons/logo.png" alt="SwiftPoll" style="height: 32px; width: auto;">
+        Poll
+      </a>
     </header>
 
     <main id="app">
       <!-- 1. Landing Section (Home Page) -->
       <section id="landing-section">
-        <div class="hero-badge">🔒 Secure & Anonymous</div>
+        <div class="hero-badge">
+          <img src="/icons/lock.png" alt="Lock" style="height: 18px; width: auto;">
+          Secure & Anonymous
+        </div>
         <h1 class="hero-title">Create Instant Polls <br>in Seconds.</h1>
         <p class="hero-subtitle">The simplest way to gather opinions from your friends or colleagues. No signups, no
           tracking, just results.</p>
         <div class="hero-btns">
-          <button id="get-started-btn" class="btn btn-primary">Create a Poll</button>
+          <button id="get-started-btn" class="btn btn-primary"><span>Create a Poll</span></button>
           <button id="view-active-btn" class="btn btn-secondary" style="border: 1px solid var(--border);">Live
             Results</button>
         </div>
@@ -50,14 +59,6 @@
           </div>
         </div>
 
-        <!-- Recent Polls Section -->
-        <div id="recent-polls-container" class="hidden"
-          style="margin-top: 2rem; text-align: left; background: rgba(255,255,255,0.5); padding: 1.5rem; border-radius: 1rem; backdrop-filter: blur(10px);">
-          <h3 style="font-size: 1.1rem; color: var(--primary); margin-bottom: 1rem;">Your Vote History</h3>
-          <div id="recent-polls-list" style="display: flex; flex-direction: column; gap: 0.75rem;">
-            <!-- Recent polls injected here -->
-          </div>
-        </div>
       </section>
 
       <!-- 2. Create Poll Section -->
@@ -69,9 +70,15 @@
           <h2>Create your Poll</h2>
         </div>
 
-        <div class="form-group">
+        <div id="poll-question-wrapper" class="form-group">
           <label for="poll-question">Main Question</label>
-          <input type="text" id="poll-question" placeholder="e.g. What should we eat for dinner?">
+          <input type="text" id="poll-question" placeholder="Main Question" autocomplete="off">
+          <div class="placeholder-container">
+            <span class="placeholder-text">e.g. What should we eat for dinner?</span>
+            <span class="placeholder-text">e.g. Which programming language is best?</span>
+            <span class="placeholder-text">e.g. Next team outing location?</span>
+            <span class="placeholder-text">e.g. Favorite superhero?</span>
+          </div>
         </div>
 
         <div class="form-group">
@@ -91,28 +98,27 @@
 
         <div class="form-group">
           <label for="poll-duration">Poll Duration</label>
-          <select id="poll-duration"
-            style="width: 100%; padding: 0.875rem 1.125rem; border-radius: 0.75rem; border: 1px solid var(--border); background: white; font-size: 1rem; outline: none; margin-top: 0.5rem;">
-            <option value="0">Never Expires</option>
+          <select id="poll-duration">
             <option value="60">1 Hour</option>
             <option value="1440">24 Hours</option>
-            <option value="10080">7 Days</option>
             <option value="custom">Custom</option>
           </select>
 
-          <!-- Custom Duration Inputs -->
-          <div id="custom-duration-wrapper" class="hidden" style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
-            <input type="number" id="custom-duration-value" placeholder="Value" min="1" class="poll-option-input"
-              style="flex: 1;">
-            <select id="custom-duration-unit" class="poll-option-input" style="flex: 1;">
-              <option value="m">Minutes</option>
-              <option value="h">Hours</option>
-              <option value="d">Days</option>
-            </select>
-          </div>
+            <!-- Custom Duration Inputs -->
+            <div id="custom-duration-wrapper" class="hidden" style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+              <input type="number" id="custom-duration-value" placeholder="Value" min="1" class="poll-option-input"
+                style="flex: 1;">
+              <select id="custom-duration-unit" class="poll-option-input" style="flex: 1;">
+                <option value="m">Minutes</option>
+                <option value="h">Hours</option>
+                <option value="d">Days</option>
+              </select>
+            </div>
         </div>
 
-        <button id="create-poll-btn" class="btn btn-primary btn-block" style="margin-top: 2rem;">Launch Poll</button>
+        <div style="margin-top: 2rem;">
+          <button id="create-poll-btn" class="btn btn-primary btn-block"><span>Launch Poll</span></button>
+        </div>
         <button class="btn btn-secondary btn-block back-to-home-btn" style="margin-top: 1rem; border: none;">Back to
           Home</button>
       </section>
@@ -129,7 +135,7 @@
 
         <!-- Timer -->
         <div id="poll-timer-container" class="hidden"
-          style="margin-bottom: 1.5rem; font-weight: 600; color: var(--primary); background: rgba(79, 70, 229, 0.1); padding: 0.5rem 1rem; border-radius: 0.5rem; display: inline-block;">
+          style="margin-bottom: 1.5rem; font-weight: 600; background: rgba(79, 70, 229, 0.1); padding: 0.5rem 1rem; border-radius: 0.5rem; display: inline-block;">
           Time Left: <span id="poll-timer">--:--</span>
         </div>
 
@@ -139,16 +145,21 @@
           <!-- Options injected here -->
         </div>
 
-        <button id="submit-vote-btn" class="btn btn-primary btn-block" disabled style="margin-top: 2rem;">Cast
-          Vote</button>
+        <button id="submit-vote-btn" class="btn btn-primary btn-block" disabled style="margin-top: 2rem;"><span>Cast
+            Vote</span></button>
         <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
-          <button id="share-poll-btn" class="btn btn-secondary"
-            style="flex: 1; background-color: #f1f5f9; color: var(--text-color); border: 1px solid var(--border);">Copy
-            Link 🔗</button>
-          <button id="view-results-direct-btn" class="btn btn-secondary"
-            style="flex: 1; background-color: #f1f5f9; color: var(--text-color); border: 1px solid var(--border);">Results
-            📊</button>
+          <button id="share-poll-btn" class="btn btn-secondary btn-animate"
+            style="flex: 1; background-color: #f1f5f9; color: var(--text-color); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+            <i data-lucide="copy" style="width: 18px;"></i> Copy Link
+          </button>
+          <button id="view-results-direct-btn" class="btn btn-secondary btn-animate"
+            style="flex: 1; background-color: #f1f5f9; color: var(--text-color); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+            <i data-lucide="bar-chart-3" style="width: 18px;"></i> Results
+          </button>
         </div>
+        <button class="btn btn-secondary btn-block back-to-home-btn hidden" id="vote-back-home"
+          style="margin-top: 1rem; border: none;">Back to
+          Home</button>
 
         <p style="text-align: center; margin-top: 1.5rem; font-size: 0.85rem; color: var(--text-muted);">
           Anonymous vote secured by IP protection.
@@ -172,10 +183,13 @@
         </div>
 
         <button id="terminate-poll-btn" class="btn btn-secondary btn-block hidden"
-          style="margin-top: 1rem; color: #ef4444; border-color: #fecaca;">Terminate Poll 🛑</button>
+          style="margin-top: 1rem; color: #ef4444; border-color: #fecaca; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+          <img src="/icons/warning.png" alt="Warning" style="height: 18px; width: auto;">
+          Terminate Poll
+        </button>
 
-        <button id="back-home-btn" class="btn btn-primary btn-block" style="margin-top: 1rem;">Create My Own
-          Poll</button>
+        <button id="back-home-btn" class="btn btn-primary btn-block" style="margin-top: 1rem;"><span>Create My Own
+            Poll</span></button>
         <button class="btn btn-secondary btn-block back-to-home-btn" style="margin-top: 0.5rem; border: none;">Back to
           Home</button>
       </section>
