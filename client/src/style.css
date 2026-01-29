@@ -138,6 +138,16 @@ header {
   border: 1px solid var(--glass-border);
   margin-bottom: 2rem;
   transition: var(--transition);
+  position: relative;
+  /* Added for Reset Button positioning */
+}
+
+/* ... */
+
+.btn-reset i,
+.btn-reset img {
+  width: 18px;
+  height: 18px;
 }
 
 .card h2 {
@@ -409,8 +419,8 @@ select:focus {
 /* Reset Button & Animations */
 .btn-reset {
   position: absolute;
-  top: 1.25rem;
-  right: 1.25rem;
+  top: 4.2rem;
+  right: 2.5rem;
   width: 36px;
   height: 36px;
   border-radius: 50%;
@@ -467,7 +477,7 @@ select:focus {
   height: 18px;
 }
 
-/* --- Added Animations & Enhancements --- */
+/* --- Animations--- */
 
 /* Button Click/Hover Animation */
 .btn-animate {
