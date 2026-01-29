@@ -4,7 +4,7 @@
  * A secure, anonymous polling API built with Express.js and MongoDB.
  * Implements IP-based duplicate vote prevention.
  * 
- * @author Your Name
+ * @author Manush
  * @version 1.0.0
  */
 
