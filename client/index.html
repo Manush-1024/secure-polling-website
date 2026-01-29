@@ -70,6 +70,10 @@
           <h2>Create your Poll</h2>
         </div>
 
+        <button id="reset-create-btn" class="btn-reset hidden" title="Reset Form">
+          <img src="/icons/reset.png" alt="Reset">
+        </button>
+
         <div id="poll-question-wrapper" class="form-group">
           <label for="poll-question">Main Question</label>
           <input type="text" id="poll-question" placeholder="Main Question" autocomplete="off">
@@ -104,16 +108,16 @@
             <option value="custom">Custom</option>
           </select>
 
-            <!-- Custom Duration Inputs -->
-            <div id="custom-duration-wrapper" class="hidden" style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
-              <input type="number" id="custom-duration-value" placeholder="Value" min="1" class="poll-option-input"
-                style="flex: 1;">
-              <select id="custom-duration-unit" class="poll-option-input" style="flex: 1;">
-                <option value="m">Minutes</option>
-                <option value="h">Hours</option>
-                <option value="d">Days</option>
-              </select>
-            </div>
+          <!-- Custom Duration Inputs -->
+          <div id="custom-duration-wrapper" class="hidden" style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+            <input type="number" id="custom-duration-value" placeholder="Value" min="1" class="poll-option-input"
+              style="flex: 1;">
+            <select id="custom-duration-unit" class="poll-option-input" style="flex: 1;">
+              <option value="m">Minutes</option>
+              <option value="h">Hours</option>
+              <option value="d">Days</option>
+            </select>
+          </div>
         </div>
 
         <div style="margin-top: 2rem;">
