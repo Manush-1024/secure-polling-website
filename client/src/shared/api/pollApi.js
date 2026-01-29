@@ -21,6 +21,11 @@ export const pollApi = {
         return response.json();
     },
 
+    getAllPolls: async () => {
+        const response = await fetch(`${API_URL}/polls`);
+        return response.json();
+    },
+
     getResults: async (id) => {
         const response = await fetch(`${API_URL}/results/${id}`);
         return response.json();
