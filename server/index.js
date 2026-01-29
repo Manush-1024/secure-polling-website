@@ -122,6 +122,22 @@ app.get('/api/polls/active', async (req, res) => {
 });
 
 /**
+ * GET /api/polls
+ * Retrieve all polls from the database
+ * 
+ * @returns {object[]} Array of all polls
+ */
+app.get('/api/polls', async (req, res) => {
+    try {
+        const polls = await Poll.find().sort({ createdAt: -1 });
+        res.json(polls);
+    } catch (err) {
+        console.error('Error fetching all polls:', err);
+        res.status(500).json({ error: 'Failed to fetch polls' });
+    }
+});
+
+/**
  * GET /api/poll/:id
  * Retrieve poll details for voting
  * 
@@ -238,6 +254,7 @@ app.post('/api/poll/:id/terminate', async (req, res) => {
 /**
  * GET /api/results/:id
  * Retrieve poll results with vote counts
+ * ONLY accessible if the user has voted or is the poll creator (if tracking owner)
  * 
  * @param {string} id - Poll ID
  * @returns {object} { question, options, totalVotes }
@@ -246,6 +263,16 @@ app.get('/api/results/:id', async (req, res) => {
     try {
         const poll = await Poll.findById(req.params.id);
         if (!poll) return res.status(404).json({ error: 'Poll not found' });
+
+        const userIP = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket.remoteAddress;
+
+        // Check if the user has voted
+        if (!poll.votedIPs.includes(userIP)) {
+            return res.status(403).json({
+                error: 'Access denied. You must vote in the poll to view live results.',
+                requiresVote: true
+            });
+        }
 
         res.json({
             question: poll.question,
