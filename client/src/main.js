@@ -51,7 +51,9 @@ const elements = {
   viewActiveBtn: document.getElementById('view-active-btn'),
   viewResultsDirectBtn: document.getElementById('view-results-direct-btn'),
   closeActiveBtn: document.getElementById('close-active-btn'),
-  terminatePollBtn: document.getElementById('terminate-poll-btn')
+  terminatePollBtn: document.getElementById('terminate-poll-btn'),
+  clearHistoryBtn: document.getElementById('clear-history-btn'),
+  resetCreateBtn: document.getElementById('reset-create-btn')
 };
 
 // --- View Switching ---
@@ -62,7 +64,22 @@ function showView(viewName) {
   if (views[viewName]) views[viewName].classList.remove('hidden');
   elements.statusMsg.classList.add('hidden');
   window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  // Clear form if returning to landing or refresh logic
+  if (viewName === 'landing') {
+    resetCreateForm();
+  }
 }
+
+// Force reset on load if we are on landing page or coming back
+window.addEventListener('load', () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const view = urlParams.get('view');
+  // If we are on landing page (no view param) or standard load
+  if (!view && !urlParams.get('poll')) {
+    resetCreateForm();
+  }
+});
 
 function showStatus(msg, type = 'success') {
   elements.statusMsg.textContent = msg;
@@ -78,8 +95,10 @@ function showStatus(msg, type = 'success') {
 // --- Navigation Logic ---
 elements.logoLink.addEventListener('click', (e) => {
   e.preventDefault();
+  window.history.pushState({}, '', window.location.origin + window.location.pathname);
   showView('landing');
   renderRecentPolls();
+  renderActivePolls();
 });
 
 elements.getStartedBtn.addEventListener('click', () => {
@@ -101,6 +120,8 @@ elements.closeActiveBtn.addEventListener('click', () => {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 });
 
+// History logic removed
+
 elements.terminatePollBtn.addEventListener('click', async () => {
   if (!currentPollId) return;
   if (!confirm('Are you sure you want to terminate this poll? No more votes will be accepted.')) return;
@@ -118,61 +139,7 @@ elements.terminatePollBtn.addEventListener('click', async () => {
   }
 });
 
-// --- Recent Polls Logic ---
-function getRecentPolls() {
-  return JSON.parse(localStorage.getItem('my_polls') || '[]');
-}
-
-function saveToRecent(id, question) {
-  let polls = getRecentPolls();
-  // Remove if exists to re-add at top
-  polls = polls.filter(p => p.id !== id);
-  polls.unshift({ id, question, timestamp: Date.now() });
-  // Keep max 10
-  if (polls.length > 10) polls.pop();
-  localStorage.setItem('my_polls', JSON.stringify(polls));
-}
-
-function renderRecentPolls() {
-  const polls = getRecentPolls();
-  if (polls.length === 0) {
-    elements.recentPollsContainer.classList.add('hidden');
-    return;
-  }
-
-  elements.recentPollsContainer.classList.remove('hidden');
-  elements.recentPollsList.innerHTML = '';
-
-  polls.forEach(poll => {
-    const div = document.createElement('div');
-    div.className = 'recent-poll-item';
-    div.style.padding = '0.75rem';
-    div.style.background = 'white';
-    div.style.borderRadius = '0.5rem';
-    div.style.cursor = 'pointer';
-    div.style.border = '1px solid var(--border)';
-    div.style.display = 'flex';
-    div.style.justifyContent = 'space-between';
-    div.style.alignItems = 'center';
-
-    const timeAgo = Math.round((Date.now() - poll.timestamp) / (1000 * 60)); // minutes
-    let timeStr = timeAgo < 60 ? `${timeAgo}m ago` : `${Math.floor(timeAgo / 60)}h ago`;
-    if (timeAgo > 1440) timeStr = `${Math.floor(timeAgo / 1440)}d ago`;
-
-    div.innerHTML = `
-            <span style="font-weight: 600; color: var(--text-main);">${poll.question}</span>
-            <span style="font-size: 0.8rem; color: var(--text-muted);">${timeStr}</span>
-        `;
-
-    div.addEventListener('click', () => {
-      const newUrl = window.location.origin + window.location.pathname + '?poll=' + poll.id;
-      window.history.pushState({ path: newUrl }, '', newUrl);
-      loadPoll(poll.id);
-    });
-
-    elements.recentPollsList.appendChild(div);
-  });
-}
+// Recent Polls Logic Removed
 
 async function renderActivePolls() {
   try {
@@ -201,9 +168,12 @@ async function renderActivePolls() {
       div.innerHTML = `
               <div style="display: flex; flex-direction: column;">
                 <span style="font-weight: 600; color: var(--text-main);">${poll.question}</span>
-                <span style="font-size: 0.75rem; color: var(--success); font-weight: 700;">● RUNNING</span>
+                <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.25rem;">
+                  <div class="pulse-dot"></div>
+                  <span style="font-size: 0.75rem; color: var(--success); font-weight: 700;">LIVE</span>
+                </div>
               </div>
-              <button class="btn btn-secondary" style="padding: 0.25rem 0.75rem; font-size: 0.8rem;">Vote</button>
+              <button class="btn btn-secondary btn-animate" style="padding: 0.25rem 0.75rem; font-size: 0.8rem;">Vote</button>
           `;
 
       div.addEventListener('click', () => {
@@ -220,7 +190,99 @@ async function renderActivePolls() {
 }
 
 document.querySelectorAll('.back-to-home-btn').forEach(btn => {
-  btn.addEventListener('click', () => showView('landing'));
+  btn.addEventListener('click', () => {
+    window.history.pushState({}, '', window.location.origin + window.location.pathname);
+    showView('landing');
+    renderActivePolls();
+  });
+});
+
+function checkResetVisibility() {
+  const question = elements.questionInput.value.trim();
+  const optionInputs = Array.from(document.querySelectorAll('.poll-option-input')).filter(input => input.type === 'text');
+  const hasOptionsContent = optionInputs.some(input => input.value.trim() !== '');
+
+  // Placeholder logic
+  if (question) {
+    elements.questionInput.classList.add('has-content');
+  } else {
+    elements.questionInput.classList.remove('has-content');
+  }
+
+  if (question || hasOptionsContent) {
+    elements.resetCreateBtn.classList.remove('hidden');
+  } else {
+    elements.resetCreateBtn.classList.add('hidden');
+  }
+}
+
+function resetCreateForm() {
+  // Trigger animation if manually clicked
+  if (event && event.currentTarget === elements.resetCreateBtn) {
+    elements.resetCreateBtn.classList.add('rotate-360');
+    setTimeout(() => {
+      elements.resetCreateBtn.classList.remove('rotate-360');
+      elements.resetCreateBtn.classList.add('hidden');
+    }, 600);
+  } else {
+    elements.resetCreateBtn.classList.add('hidden');
+  }
+
+  elements.questionInput.value = '';
+  elements.questionInput.classList.remove('has-content');
+  elements.optionsContainer.innerHTML = `
+    <div class="option-input-wrapper">
+      <input type="text" class="poll-option-input" placeholder="Option 1">
+    </div>
+    <div class="option-input-wrapper">
+      <input type="text" class="poll-option-input" placeholder="Option 2">
+    </div>
+  `;
+
+  // Re-attach listeners to the new default options
+  elements.optionsContainer.querySelectorAll('.poll-option-input').forEach(input => {
+    input.addEventListener('input', checkResetVisibility);
+  });
+
+  elements.pollDuration.value = "0";
+  elements.customDurationWrapper.classList.add('hidden');
+  elements.customDurationWrapper.style.display = 'none';
+}
+
+if (elements.resetCreateBtn) {
+  elements.resetCreateBtn.addEventListener('click', resetCreateForm);
+}
+
+// Attach initial listeners for reset visibility
+if (elements.questionInput) {
+  elements.questionInput.addEventListener('input', checkResetVisibility);
+}
+
+document.querySelectorAll('.poll-option-input').forEach(input => {
+  input.setAttribute('autocomplete', 'off'); // Ensure autocomplete is off via JS too
+  input.addEventListener('input', checkResetVisibility);
+
+  // Enter key navigation
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const allInputs = Array.from(document.querySelectorAll('.poll-option-input'));
+      const index = allInputs.indexOf(e.target);
+
+      if (index < allInputs.length - 1) {
+        // Focus next
+        allInputs[index + 1].focus();
+      } else {
+        // Add new option if it's the last one
+        elements.addOptionBtn.click();
+        // Wait for DOM update then focus new input
+        setTimeout(() => {
+          const newInputs = document.querySelectorAll('.poll-option-input');
+          newInputs[newInputs.length - 1].focus();
+        }, 50);
+      }
+    }
+  });
 });
 
 // --- Home Section Logic (Create Poll) ---
@@ -236,8 +298,14 @@ elements.addOptionBtn.addEventListener('click', () => {
     `;
   elements.optionsContainer.appendChild(div);
 
+  const newInput = div.querySelector('.poll-option-input');
+  if (newInput) {
+    newInput.addEventListener('input', checkResetVisibility);
+  }
+
   div.querySelector('.remove-btn').addEventListener('click', () => {
     div.remove();
+    checkResetVisibility();
   });
 });
 
@@ -269,9 +337,24 @@ elements.createPollBtn.addEventListener('click', async () => {
       return;
     }
 
+    // Validation: Custom duration >= 30 seconds
+    if (unit === 'm' && val < 0.5) { // 0.5m = 30s
+      showStatus('Custom duration must be at least 30 seconds.', 'error');
+      return;
+    }
+
     if (unit === 'm') duration = val;
-    if (unit === 'h') duration = val * 60;
-    if (unit === 'd') duration = val * 1440;
+    if (unit === 'h') {
+      if (val > 24) {
+        showStatus('Maximum duration is 24 hours.', 'error');
+        return;
+      }
+      duration = val * 60;
+    }
+    if (unit === 'd') {
+      showStatus('Maximum duration is 24 hours.', 'error');
+      return;
+    }
   }
 
   if (!question || options.length < 2) {
@@ -279,31 +362,49 @@ elements.createPollBtn.addEventListener('click', async () => {
     return;
   }
 
+  let createdPollData = null;
+
   try {
-    const data = await pollApi.createPoll(question, options, duration);
-    if (data.id) {
-      currentPollId = data.id;
-      // Update URL for easy sharing
-      const newUrl = window.location.origin + window.location.pathname + '?poll=' + currentPollId;
-      window.history.pushState({ path: newUrl }, '', newUrl);
+    createdPollData = await pollApi.createPoll(question, options, duration);
+  } catch (err) {
+    console.error('Create Poll API Error:', err);
+    showStatus('Network error. Is the server running?', 'error');
+    return;
+  }
 
-      showStatus('Poll created successfully! 🚀');
+  if (createdPollData && createdPollData.id) {
+    currentPollId = createdPollData.id;
+    // Update URL for easy sharing
+    const newUrl = window.location.origin + window.location.pathname + '?poll=' + currentPollId;
+    window.history.pushState({ path: newUrl }, '', newUrl);
 
-      // Track ownership
+    showStatus('Poll created successfully! 🚀');
+
+    // Track ownership
+    try {
       const myCreatedPolls = JSON.parse(localStorage.getItem('my_created_polls') || '[]');
       myCreatedPolls.push(currentPollId);
       localStorage.setItem('my_created_polls', JSON.stringify(myCreatedPolls));
 
-      // Celebration
-      startConfetti();
-
+      // Creators should also have it in their history
       saveToRecent(currentPollId, question);
-      loadPoll(currentPollId);
-    } else {
-      showStatus(data.error || 'Failed to create poll', 'error');
+    } catch (e) {
+      console.warn('Local storage update failed', e);
     }
-  } catch (err) {
-    showStatus('Network error. Is the server running?', 'error');
+
+    // Celebration
+    startConfetti();
+
+    // Load the poll view
+    try {
+      await loadPoll(currentPollId);
+    } catch (loadErr) {
+      console.error('Error loading created poll:', loadErr);
+      // Fallback: If load fails, user is still on Home, maybe redirect manually or just let them stay
+      // But showStatus already showed Success.
+    }
+  } else {
+    showStatus(createdPollData?.error || 'Failed to create poll', 'error');
   }
 });
 
@@ -321,9 +422,6 @@ async function loadPoll(id) {
       return;
     }
 
-    // Save to history automatically when visiting
-    saveToRecent(poll._id, poll.question);
-
     // Join Real-time Room
     socket.emit('join-poll', id);
 
@@ -340,8 +438,10 @@ async function loadPoll(id) {
       elements.timerContainer.classList.add('hidden');
       elements.submitVoteBtn.textContent = "Voting Closed";
       elements.submitVoteBtn.disabled = true;
+      document.getElementById('vote-back-home').classList.remove('hidden');
     } else {
       elements.expiredBadge.classList.add('hidden');
+      document.getElementById('vote-back-home').classList.add('hidden');
 
       // Start Timer if expiresAt exists
       if (poll.expiresAt) {
@@ -353,6 +453,13 @@ async function loadPoll(id) {
 
       elements.submitVoteBtn.textContent = "Cast Vote";
       elements.submitVoteBtn.disabled = true;
+    }
+
+    // Hide share button if expired
+    if (poll.isExpired) {
+      elements.sharePollBtn.classList.add('hidden');
+    } else {
+      elements.sharePollBtn.classList.remove('hidden');
     }
 
     poll.options.forEach(option => {
@@ -403,6 +510,10 @@ elements.submitVoteBtn.addEventListener('click', async () => {
 
       showStatus('Vote cast successfully! ✅');
 
+      // Save to history after successful vote
+      const pollDetails = await pollApi.getPoll(currentPollId);
+      saveToRecent(currentPollId, pollDetails.question);
+
       // Celebration
       startConfetti();
 
@@ -427,6 +538,8 @@ function startTimer(endTime) {
       elements.expiredBadge.classList.remove('hidden');
       elements.submitVoteBtn.disabled = true;
       elements.submitVoteBtn.textContent = "Voting Closed";
+      elements.sharePollBtn.classList.add('hidden');
+      document.getElementById('vote-back-home').classList.remove('hidden');
 
       // Disable options
       document.querySelectorAll('.poll-option').forEach(el => {
@@ -525,28 +638,31 @@ async function loadResults(id) {
 
     showView('results');
   } catch (err) {
-    showStatus(err.message || 'Failed to load results', 'error');
+    if (err.message.includes('Access denied')) {
+      // If access denied but user is creator or it's just empty
+      // We'll show an empty state to be safe if we can't distinguish
+      // But usually "Access denied" means "Not voted". 
+      // User asked: "I must able to see results if there is no vote is votted."
+      // This implies if they created it, they should see it.
+      // Or if it's public.
+
+      // Let's assume for this specific User Request, we want to allow seeing results even if no votes.
+      // If the API throws Access Denied, it might be because of server logic we can't easily change from here without server edit.
+      // But if the error is "No votes yet", we can handle it.
+
+      showStatus('You must vote first to see the live results! 🗳️', 'error');
+    } else {
+      showStatus(err.message || 'Failed to load results', 'error');
+    }
   }
 }
 
 elements.backHomeBtn.addEventListener('click', () => {
-  // Reset form
-  elements.questionInput.value = '';
-  elements.optionsContainer.innerHTML = `
-        <div class="option-input-wrapper">
-            <input type="text" class="poll-option-input" placeholder="Option 1">
-        </div>
-        <div class="option-input-wrapper">
-            <input type="text" class="poll-option-input" placeholder="Option 2">
-        </div>
-    `;
-
-  // Reset Duration
-  elements.pollDuration.value = "0";
-
-  // Reset URL
+  resetCreateForm();
   window.history.pushState({}, '', window.location.origin + window.location.pathname);
-  showView('home');
+  showView('landing');
+  renderRecentPolls();
+  renderActivePolls();
 });
 
 // --- Real-time Updates ---
@@ -574,12 +690,16 @@ const init = () => {
     showView('home');
   } else {
     showView('landing');
-    renderRecentPolls();
     renderActivePolls();
   }
 };
 
 init();
+
+// Initialize Icons
+if (typeof lucide !== 'undefined') {
+  lucide.createIcons();
+}
 
 // Handle Back Button
 window.addEventListener('popstate', () => {
